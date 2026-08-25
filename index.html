@@ -1,0 +1,322 @@
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/recharts.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif; }
+.dashboard { background: #f8f9fa; padding: 2rem; min-height: 100vh; }
+.header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+.logo { width: 40px; height: 40px; background: #4A90E2; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+.title { font-size: 28px; font-weight: 600; color: #1a1a1a; }
+.filters { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 0.5px solid #e0e0e0; }
+.filter-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.filter-item { display: flex; flex-direction: column; gap: 0.5rem; }
+.filter-item label { font-size: 13px; color: #666; font-weight: 500; }
+.filter-item input, .filter-item select { padding: 0.75rem; border: 0.5px solid #ddd; border-radius: 6px; font-size: 14px; }
+.filter-buttons { display: flex; gap: 0.5rem; margin-top: 1rem; }
+button { padding: 0.75rem 1.5rem; border: 0.5px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+button:hover { background: #f5f5f5; }
+button.primary { background: #4A90E2; color: white; border: 0.5px solid #4A90E2; }
+button.primary:hover { background: #357abd; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.kpi-card { background: white; padding: 1.5rem; border-radius: 8px; border: 0.5px solid #e0e0e0; }
+.kpi-label { font-size: 13px; color: #999; font-weight: 500; margin-bottom: 0.5rem; }
+.kpi-value { font-size: 32px; font-weight: 600; color: #1a1a1a; display: flex; align-items: baseline; gap: 0.5rem; }
+.kpi-trend { font-size: 14px; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.25rem; }
+.trend-up { color: #7ED321; }
+.trend-down { color: #e74c3c; }
+.chart-container { background: white; padding: 1.5rem; border-radius: 8px; border: 0.5px solid #e0e0e0; margin-bottom: 2rem; }
+.chart-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 1rem; }
+.chart-wrapper { width: 100%; height: 300px; }
+.table-container { background: white; padding: 1.5rem; border-radius: 8px; border: 0.5px solid #e0e0e0; margin-bottom: 2rem; overflow-x: auto; }
+.table-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 1rem; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #f5f5f5; padding: 0.75rem; text-align: left; font-weight: 600; color: #1a1a1a; border-bottom: 0.5px solid #e0e0e0; }
+td { padding: 0.75rem; border-bottom: 0.5px solid #e0e0e0; }
+tr:hover { background: #fafafa; }
+.positive { color: #7ED321; font-weight: 500; }
+.negative { color: #e74c3c; font-weight: 500; }
+.comments-section { background: white; padding: 1.5rem; border-radius: 8px; border: 0.5px solid #e0e0e0; margin-bottom: 2rem; }
+.comment-form { margin-bottom: 1rem; }
+.comment-form input { width: 100%; padding: 0.75rem; border: 0.5px solid #ddd; border-radius: 6px; margin-bottom: 0.5rem; font-size: 14px; }
+.comment-list { max-height: 300px; overflow-y: auto; }
+.comment { background: #f9f9f9; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; border-left: 3px solid #4A90E2; }
+.comment-user { font-weight: 600; color: #1a1a1a; font-size: 12px; }
+.comment-text { color: #666; font-size: 13px; margin-top: 0.25rem; }
+.export-section { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+.preset-section { background: white; padding: 1.5rem; border-radius: 8px; border: 0.5px solid #e0e0e0; margin-bottom: 2rem; }
+.preset-list { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+.preset-tag { background: #F5A623; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 13px; cursor: pointer; }
+.preset-tag:hover { opacity: 0.9; }
+.metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
+@media (max-width: 768px) { .kpi-grid { grid-template-columns: 1fr; } .metrics-grid { grid-template-columns: 1fr; } .filter-group { grid-template-columns: 1fr; } }
+</style>
+
+<div class="dashboard">
+  <div class="header">
+    <div class="logo">📊</div>
+    <div>
+      <h1 class="title">Pazarlama Kampanyaları Yönetim Paneli</h1>
+      <p style="color: #999; font-size: 14px;">E-Commerce Analytics Dashboard</p>
+    </div>
+  </div>
+
+  <div class="filters">
+    <h3 style="margin-bottom: 1rem;">Filtreler</h3>
+    <div class="filter-group">
+      <div class="filter-item">
+        <label>Başlangıç Tarihi</label>
+        <input type="date" id="startDate" value="2024-01-01">
+      </div>
+      <div class="filter-item">
+        <label>Bitiş Tarihi</label>
+        <input type="date" id="endDate" value="2024-12-31">
+      </div>
+      <div class="filter-item">
+        <label>Marketing Kanalı</label>
+        <select id="channel">
+          <option value="all">Tüm Kanallar</option>
+          <option value="google">Google Ads</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="email">Email</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-buttons">
+      <button class="primary" onclick="applyFilters()">Filtreyi Uygula</button>
+      <button onclick="resetFilters()">Sıfırla</button>
+      <button onclick="exportData()">📥 Excel'e Aktar</button>
+      <button onclick="shareData()">📤 Paylaş</button>
+    </div>
+  </div>
+
+  <div class="preset-section">
+    <h3>Filtre Presetleri</h3>
+    <div class="preset-list">
+      <div class="preset-tag" onclick="loadPreset('last-7-days')">Son 7 Gün</div>
+      <div class="preset-tag" onclick="loadPreset('last-30-days')">Son 30 Gün</div>
+      <div class="preset-tag" onclick="loadPreset('this-quarter')">Bu Çeyrek</div>
+      <div class="preset-tag" onclick="loadPreset('this-year')">Bu Yıl</div>
+      <div class="preset-tag" onclick="saveCurrentPreset()">+ Mevcut Filtreleyi Kaydet</div>
+    </div>
+  </div>
+
+  <div class="export-section">
+    <button onclick="printDashboard()" style="background: #F5A623; color: white; border: 0.5px solid #F5A623;">🖨️ Yazdır</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Müşteri Edinme Maliyeti (CAC)</div>
+      <div class="kpi-value"><span style="color: #4A90E2;">₺ 125.50</span></div>
+      <div class="kpi-trend"><span class="trend-down">↓ 12.5%</span> son aydan</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Reklam Getiri Oranı (ROAS)</div>
+      <div class="kpi-value"><span style="color: #7ED321;">4.2x</span></div>
+      <div class="kpi-trend"><span class="trend-up">↑ 8.3%</span> plandan</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Dönüşüm Oranı</div>
+      <div class="kpi-value"><span style="color: #F5A623;">3.45%</span></div>
+      <div class="kpi-trend"><span class="trend-up">↑ 5.2%</span> geçen dönem</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pazarlama ROI</div>
+      <div class="kpi-value"><span style="color: #F5A623;">340%</span></div>
+      <div class="kpi-trend"><span class="trend-up">↑ 15.8%</span> hedeften fazla</div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <h3 class="chart-title">CAC vs ROAS Trendi</h3>
+    <div id="cacRoasChart" class="chart-wrapper"></div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="chart-container">
+      <h3 class="chart-title">Kanallara Göre Dönüşüm</h3>
+      <div id="conversionChart" class="chart-wrapper"></div>
+    </div>
+    <div class="chart-container">
+      <h3 class="chart-title">Bütçe Dağılımı</h3>
+      <div id="budgetChart" class="chart-wrapper"></div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <h3 class="chart-title">Dönüşüm Hunisi</h3>
+    <div id="funnelChart" class="chart-wrapper"></div>
+  </div>
+
+  <div class="table-container">
+    <h3 class="table-title">Önceki Kampanyalarla Karşılaştırma</h3>
+    <table>
+      <thead>
+        <tr style="background: #f5f5f5;">
+          <th>Kampanya Adı</th>
+          <th>CAC</th>
+          <th>ROAS</th>
+          <th>Dönüşüm Oranı</th>
+          <th>ROI Değişimi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Yaz Kampanyası 2024</td>
+          <td>₺ 125.50</td>
+          <td>4.2x</td>
+          <td>3.45%</td>
+          <td><span class="positive">+15.8%</span></td>
+        </tr>
+        <tr>
+          <td>İlkbahar Kampanyası 2024</td>
+          <td>₺ 143.20</td>
+          <td>3.8x</td>
+          <td>3.12%</td>
+          <td><span class="positive">+8.2%</span></td>
+        </tr>
+        <tr>
+          <td>Kış Kampanyası 2023</td>
+          <td>₺ 156.75</td>
+          <td>3.2x</td>
+          <td>2.85%</td>
+          <td><span class="negative">-2.5%</span></td>
+        </tr>
+        <tr>
+          <td>Sonbahar Kampanyası 2023</td>
+          <td>₺ 168.45</td>
+          <td>2.9x</td>
+          <td>2.56%</td>
+          <td><span class="negative">-8.1%</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="comments-section">
+    <h3>Kampanya Notları</h3>
+    <div class="comment-form">
+      <input type="text" id="commentInput" placeholder="Metrik hakkında not ekle...">
+      <button onclick="addComment()" class="primary">Yorum Ekle</button>
+    </div>
+    <div class="comment-list" id="commentList">
+      <div class="comment">
+        <div class="comment-user">Pazarlama Müdürü - Bugün</div>
+        <div class="comment-text">Google Ads kampanyasında 12% iyileşme gördük. Bütçe artışı etkili oldu.</div>
+      </div>
+      <div class="comment">
+        <div class="comment-user">Veri Analisti - Dün</div>
+        <div class="comment-text">Email kampanyasının conversion rate'ı beklentileri aştı. A/B test sonuçları promosyon kodu kullanan versiyonun %8 daha iyi olduğunu gösteriyor.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+if (!window.React || !window.ReactDOM || !window.Recharts) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="padding:20px;background:#fff3cd;color:#664d03;font-family:Arial,sans-serif;text-align:center;">Dashboard grafik kütüphaneleri yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.</div>'
+  );
+}
+const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer } = window.Recharts;
+
+const data = [
+  { month: 'Oca', cac: 145, roas: 3.2 },
+  { month: 'Şub', cac: 138, roas: 3.5 },
+  { month: 'Mar', cac: 135, roas: 3.7 },
+  { month: 'Nis', cac: 130, roas: 3.9 },
+  { month: 'May', cac: 128, roas: 4.1 },
+  { month: 'Haz', cac: 125.5, roas: 4.2 },
+];
+
+const channelData = [
+  { name: 'Google Ads', conversion: 3.8 },
+  { name: 'Facebook', conversion: 3.2 },
+  { name: 'Instagram', conversion: 2.9 },
+  { name: 'Email', conversion: 4.5 },
+];
+
+const budgetData = [
+  { name: 'Google Ads', value: 35 },
+  { name: 'Facebook', value: 25 },
+  { name: 'Instagram', value: 20 },
+  { name: 'Email', value: 20 },
+];
+
+const funnelData = [
+  { stage: 'Ziyaretçi', value: 100000 },
+  { stage: 'Tıklamacı', value: 45000 },
+  { stage: 'Sepete Ekleyen', value: 12000 },
+  { stage: 'Satın Alan', value: 3450 },
+];
+
+const COLORS = ['#4A90E2', '#F5A623', '#7ED321', '#e74c3c'];
+
+function createCharts() {
+  ReactDOM.render(
+    React.createElement(ResponsiveContainer, { width: '100%', height: 300 },
+      React.createElement(LineChart, { data },
+        React.createElement(CartesianGrid, {}),
+        React.createElement(XAxis, { dataKey: 'month' }),
+        React.createElement(YAxis, {}),
+        React.createElement(Tooltip, {}),
+        React.createElement(Legend, {}),
+        React.createElement(Line, { type: 'monotone', dataKey: 'cac', stroke: '#4A90E2', name: 'CAC (₺)' }),
+        React.createElement(Line, { type: 'monotone', dataKey: 'roas', stroke: '#7ED321', name: 'ROAS' })
+      )
+    ),
+    document.getElementById('cacRoasChart')
+  );
+
+  ReactDOM.render(
+    React.createElement(ResponsiveContainer, { width: '100%', height: 300 },
+      React.createElement(BarChart, { data: channelData },
+        React.createElement(CartesianGrid, {}),
+        React.createElement(XAxis, { dataKey: 'name' }),
+        React.createElement(YAxis, {}),
+        React.createElement(Tooltip, {}),
+        React.createElement(Bar, { dataKey: 'conversion', fill: '#F5A623', name: 'Dönüşüm Oranı (%)' })
+      )
+    ),
+    document.getElementById('conversionChart')
+  );
+
+  ReactDOM.render(
+    React.createElement(ResponsiveContainer, { width: '100%', height: 300 },
+      React.createElement(PieChart, {},
+        React.createElement(Pie, { data: budgetData, cx: '50%', cy: '50%', labelLine: false, label: ({ name, value }) => `${name}: %${value}`, outerRadius: 80, fill: '#8884d8', dataKey: 'value' },
+          budgetData.map((_, i) => React.createElement(Cell, { key: `cell-${i}`, fill: COLORS[i % COLORS.length] }))
+        ),
+        React.createElement(Tooltip, {})
+      )
+    ),
+    document.getElementById('budgetChart')
+  );
+
+  ReactDOM.render(
+    React.createElement(ResponsiveContainer, { width: '100%', height: 300 },
+      React.createElement(BarChart, { data: funnelData, layout: 'vertical' },
+        React.createElement(CartesianGrid, {}),
+        React.createElement(XAxis, { type: 'number' }),
+        React.createElement(YAxis, { dataKey: 'stage', type: 'category' }),
+        React.createElement(Tooltip, {}),
+        React.createElement(Bar, { dataKey: 'value', fill: '#4A90E2', name: 'Kullanıcı Sayısı' })
+      )
+    ),
+    document.getElementById('funnelChart')
+  );
+}
+
+function applyFilters() { alert('Filtreler uygulandı!'); }
+function resetFilters() { document.getElementById('startDate').value = '2024-01-01'; document.getElementById('endDate').value = '2024-12-31'; document.getElementById('channel').value = 'all'; }
+function exportData() { alert('Veri Excel olarak indirildi!'); }
+function shareData() { alert('Paylaşım bağlantısı kopyalandı!'); }
+function printDashboard() { window.print(); }
+function loadPreset(preset) { alert(`Preset '${preset}' yüklendi!`); }
+function saveCurrentPreset() { alert('Mevcut filtreler kaydedildi!'); }
+function addComment() { const input = document.getElementById('commentInput'); if (input.value) { const list = document.getElementById('commentList'); const comment = document.createElement('div'); comment.className = 'comment'; comment.innerHTML = `<div class="comment-user">Siz - Şimdi</div><div class="comment-text">${input.value}</div>`; list.appendChild(comment); input.value = ''; } }
+
+createCharts();
+</script>
